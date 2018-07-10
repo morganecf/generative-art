@@ -42,7 +42,6 @@ function r(d, t) {
     return radius / 1.5 * Math.sin(d * t / 50000);
 }
 function x(d, t) {
-  // vary the length of each line
   const theta = 2 * Math.PI / n * d;
   return radius + Math.sin(theta) * r(d, t);
 }
