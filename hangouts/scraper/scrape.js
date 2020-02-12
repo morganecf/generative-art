@@ -44,12 +44,8 @@ function scrapeThread(messages) {
     }
 }
 async function expand() {
-    // TODO might need to just click this and get content in the other format
     const compressed = document.querySelector('table .adx');
     if (compressed) {
-        // NOTE: document.querySelector('.nH .nH .nH.bkL .no .AO table .Bu .nH .nH .hj .ade') gets span 
-        // const expandButton = document.querySelector('.T-I.J-J5-Ji.T-I-JN.L3.T-I-Zf-aw2');
-        // expandButton.click();
         compressed.click();
         await sleep(TIMEOUT);
     }
