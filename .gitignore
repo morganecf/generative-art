@@ -1,3 +1,6 @@
 videos/
 *.json
 hangouts/lib
+hangouts/data
+hangouts/node_modules
+hangouts/package-lock.json

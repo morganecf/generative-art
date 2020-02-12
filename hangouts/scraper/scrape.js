@@ -1,7 +1,13 @@
-// LIMIT = 655;
-// PAGE_LIMIT = 100;
-LIMIT = 20;
-PAGE_LIMIT = 5;
+/*
+1. in:chats <email>
+2. click on first thread
+3. run script
+*/
+
+LIMIT = 655;
+PAGE_LIMIT = 100;
+// LIMIT = 20;
+// PAGE_LIMIT = 5;
 TIMEOUT = 8000;
 
 function sleep(ms) {
@@ -14,7 +20,10 @@ function parseName(row) {
     return row.querySelector('.gF').textContent;
 }
 function parseContent(row) {
-    const el = row.querySelector('.a3s');
+    let el = row.querySelector('.a3s');
+    if (el == null) {
+        el = row.querySelector('.iA.g6');
+    }
     return el.textContent.split('\n').join(' ');
 }
 function parseRow(row) {
@@ -39,8 +48,9 @@ async function expand() {
     const compressed = document.querySelector('table .adx');
     if (compressed) {
         // NOTE: document.querySelector('.nH .nH .nH.bkL .no .AO table .Bu .nH .nH .hj .ade') gets span 
-        const expandButton = document.querySelector('.T-I.J-J5-Ji.T-I-JN.L3.T-I-Zf-aw2');
-        expandButton.click();
+        // const expandButton = document.querySelector('.T-I.J-J5-Ji.T-I-JN.L3.T-I-Zf-aw2');
+        // expandButton.click();
+        compressed.click();
         await sleep(TIMEOUT);
     }
 }
