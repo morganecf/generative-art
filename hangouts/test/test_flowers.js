@@ -4,11 +4,11 @@ const height = 800;
 const pad = 50;
 // Flower sizes
 const petalSize = 0.5;
-const halfRadius = 16;
+const halfRadius = 20;
 // Max number of petals
-const maxWords = 20;
+const maxWords = 25;
 // Will modify opacity
-const maxChars = 15;
+const maxChars = 10;
 // Spacing
 const noiseFactors = [
   width / 2,
@@ -28,12 +28,16 @@ const messageLengthThreshold = 2;
 // const color2 = '#30bac7';
 
 // Lavender and red
-const color1 = '#8e59e3';
-const color2 = '#ce0f3d';
+// const color1 = '#8e59e3';
+// const color2 = '#ce0f3d';
 
 // Pink and red
 // const color1 = '#ea7ad7';
 // const color2 = '#ce0f3d';
+
+// Yellow and lavender
+const color1 = '#ffe352';
+const color2 = '#8e59e3';
 
 function petalPath(d) {
   const size = d3.scaleSqrt()
@@ -75,10 +79,9 @@ function noise() {
   return Math.random() * noiseFactors[noiseFactor] * sign;
 }
 
-// NOTE: this will be message position within a cell
-function messagePosition(i, xscale, yscale) {
-  const x = xscale(i) + noise();
-  const y = xscale(i);
+function messagePosition(i, scale) {
+  const x = scale(i) + noise();
+  const y = scale(i);
   return `translate(${x}, ${y})`;
 }
 
@@ -89,20 +92,19 @@ async function draw() {
 
   const pie = d3.pie().sort(null).value(d => d.size);
   const xscale = d3.scaleLinear().domain([0, filtered.length - 1]).range([pad, width]);
-  const yscale = d3.scaleLinear().domain([0, filtered.length - 1]).range([height, pad]);
-  const opacityScale = d3.scaleLinear().domain([1, maxChars]).range([0, 1]);
+  const opacityScale = d3.scaleLinear().domain([1, maxChars]).range([0.3, 1]);
 
   const svg = d3.select('.container')
     .append('svg')
     .attr('width', width * 2)
-    .attr('height', height * 2);
+    .attr('height', height * 2);  
 
   const flowers = svg.selectAll('.flower')
     .data(filtered)
     .enter()
     .append('g')
     .attr('class', 'flower')
-    .attr('transform', (d, i) => messagePosition(i, xscale, yscale));
+    .attr('transform', (d, i) => messagePosition(i, xscale));
   
   flowers.selectAll('.petal')
     .data(d => pie(messageToData(d)))

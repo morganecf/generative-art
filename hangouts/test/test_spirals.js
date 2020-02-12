@@ -1,0 +1,159 @@
+const width = 1500;
+const height = 1500;
+const start = 0;
+const end = 2.25;
+const numSpirals = 10;
+// Flower sizes
+const petalSize = 0.5;
+const halfRadius = 10;
+// Max number of petals
+const maxWords = 25;
+// Will modify opacity
+const maxChars = 15;
+// Remove short messages
+const messageLengthThreshold = 2;
+// Spacing along spiral
+const noiseFactors = [
+    // width / 10,
+    // width / 20,
+    // width / 30,
+    width / 20,
+    width / 40,
+    width / 60,
+];
+
+// Yellow and lavender
+// const color1 = '#ffe352';
+// const color2 = '#8e59e3';
+
+// // Lavender and red
+// const color1 = '#8e59e3';
+// const color2 = '#ce0f3d';
+
+// Yellow and blue
+// const color1 = '#ffe352';
+// const color2 = '#120A8F';
+
+// Red and blue
+const color1 = '#ce0f3d';
+const color2 = '#120A8F';
+
+
+function petalPath(d) {
+    const size = d3.scaleSqrt()
+        .domain([0, 1])
+        .range([0, halfRadius]);
+    const angle = (d.endAngle - d.startAngle) / 2;
+    const s = polarToCartesian(-angle, halfRadius);
+    const e = polarToCartesian(angle, halfRadius);
+    const r = size(d.data.size);
+    const m = { x: halfRadius + r, y: 0 };
+    const c1 = { x: halfRadius + r / 2, y: s.y };
+    const c2 = { x: halfRadius + r / 2, y: e.y };
+    return `M0,0L${s.x},${s.y}Q${c1.x},${c1.y} ${m.x},${m.y}L${m.x},${m.y}Q${c2.x},${c2.y} ${e.x},${e.y}Z`;
+}
+
+function petalFill(d) {
+    return d.data.name.startsWith('M') ? color1 : color2
+}
+
+function flowerRadius(angle) {
+    return `rotate(${angle / Math.PI * 180})`;
+}
+
+function polarToCartesian(angle, radius) {
+    return {
+        x: Math.cos(angle) * radius,
+        y: Math.sin(angle) * radius
+    };
+}
+
+function messageToData(d) {
+    const words = d.content.split(/\s+/).slice(0, maxWords);
+    return words.map(w => ({ size: petalSize, name: d.name, chars: w.length }));
+}
+
+function theta(r) {
+    return numSpirals * Math.PI * r;
+};
+
+const r = d3.min([width, height]) / 2;
+
+const radius = d3.scaleLinear()
+    .domain([start, end])
+    .range([40, r]);
+
+const svg = d3.select('.container')
+    .append('svg')
+    .attr('width', width * 2)
+    .attr('height', height * 2)
+    .append("g")
+    .attr("transform", `translate(${(width / 2) + 50}, ${(height / 2) + 50})`);
+
+const points = d3.range(start, end + 0.001, (end - start) / 1000);
+
+const spiral = d3.radialLine()
+    .curve(d3.curveCardinal)
+    .angle(theta)
+    .radius(radius);
+
+const path = svg.append("path")
+    .datum(points)
+    .attr("id", "spiral")
+    .attr("d", spiral)
+    .attr("fill", "none")
+    .attr('stroke', 'none');
+    // .style("stroke", "steelblue");
+
+const spiralLength = path.node().getTotalLength();
+
+function noise() {
+    const sign = Math.random() < 0.5 ? -1 : 1;
+    const noiseFactor = Math.floor(Math.random() * noiseFactors.length);
+    return Math.random() * noiseFactors[noiseFactor] * sign;
+}
+
+function messagePosition(i, scale) {
+    const { x, y } = path.node().getPointAtLength(scale(i));
+    return `translate(${x + noise()}, ${y + noise()})`;
+}
+
+function filterMessages(data) {
+    return data.messages.filter(d => d.content.split(/\s+/).length > messageLengthThreshold);
+}
+
+async function draw() {
+    // const data = await d3.json('messages_15-20.json');
+    const data1 = await d3.json('../data/messages_0-100.json');
+    const data2 = await d3.json('../data/messages_100-200.json');
+    const filtered = filterMessages(data1).concat(filterMessages(data2));
+
+    const pie = d3.pie().sort(null).value(d => d.size);
+    const scale = d3.scaleLinear().domain([0, filtered.length - 1]).range([0, spiralLength]);
+    const opacityScale = d3.scaleLinear().domain([1, maxChars]).range([0, 1]);
+
+    const flowers = svg.selectAll('.flower')
+        .data(filtered)
+        .enter()
+        .append('g')
+        .attr('class', 'flower')
+        .attr('transform', (d, i) => messagePosition(i, scale));
+    
+    flowers.selectAll('.petal')
+        .data(d => pie(messageToData(d)))
+        .enter()
+        .append('path')
+        .attr('class', 'petal')
+        .attr('transform', d => flowerRadius((d.startAngle + d.endAngle) / 2))
+        .attr('d', petalPath)
+        .attr('fill', petalFill)
+        .attr('opacity', d => opacityScale(d.data.chars));
+}
+
+/*
+TODO 
+-- different colors for different date regions
+-- make outer noise vary more to have flowers that peel off more assertively
+*/
+
+draw();
