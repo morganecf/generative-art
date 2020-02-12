@@ -175,13 +175,4 @@ async function draw() {
         .attr('opacity', d => opacityScale(d.data.chars));
 }
 
-/*
-TODO 
--- sort data by date!!!!
--- try different colors for different date regions
--- add third data
--- svg butterflies?
--- mouse emojis, alchemical symbols
-*/
-
 draw();
