@@ -1,6 +1,7 @@
 const MS_PER_DAY = 8.64e+7;
-const pad = 50;
-const cellSize = 7;
+const pad = 5;
+const cellSize = 3;
+const maxOpacity = 0.8;
 
 function containsLove(message) {
     return message.toLowerCase().match(/i love you/) !== null;
@@ -11,8 +12,14 @@ function parseDate(d) {
 function countLove(days, data) {
     data.messages.forEach(d => {
         const date = parseDate(d);
-        const val = containsLove(d.content) ? 1 : 0;
-        days[date] = days[date] == null ? val : days[date] + val;
+        if (days[date] === undefined) {
+            days[date] = {
+                love: 0,
+                messages: 0,
+            };
+        }
+        days[date].love += containsLove(d.content) ? 1 : 0;
+        days[date].messages += 1;
     });
 }
 function getIndexFromCoords(i, j, n) {
@@ -48,17 +55,16 @@ function getNumAliveNeighbors(cell, grid) {
 function initializeGridFromData(n, data) {
     return d3.range(n).map((x, i) => d3.range(n).map((y, j) => {
         const index = getIndexFromCoords(i, j, n);
-        const isAlive = Boolean(data[index].val);
-        return new Cell(i, j, index, isAlive);
+        const isAlive = Boolean(data[index].data.love);
+        return new Cell(i, j, index, isAlive, data[index].data.messages);
     }));
 }
 
 class GameOfLife {
-    constructor(data, width, height, speed=1000) {
+    constructor(data, width, height) {
         this.data = data;
         this.width = width;
         this.height = height
-        this.speed = speed;
     }
 
     initialize() {
@@ -73,10 +79,13 @@ class GameOfLife {
         this.xscale = d3.scaleLinear().domain([0, this.n]).range([pad, this.width]);
         this.yscale = d3.scaleLinear().domain([0, this.n]).range([this.height, pad]);
 
+        const maxNumMessages = d3.max(this.data, d => d.messages);
+        this.opacityScale = d3.scaleLinear().domain([0, maxNumMessages]).range([0.2, maxOpacity]);
+
         const svg = d3.select('.container')
             .append('svg')
-            .attr('width', this.width + (pad * 2))
-            .attr('height', this.height + (pad * 2));
+            .attr('width', this.width + pad)
+            .attr('height', this.height + pad);
         
         this.circle = svg
             .selectAll('.circle')
@@ -121,36 +130,26 @@ class GameOfLife {
     updateDisplay() {
         this.circle
             .attr('fill', cell => cell.getFill())
-            .attr('stroke', cell => cell.getStroke());
+            .attr('opacity', cell => cell.getOpacity(this.opacityScale));
         return this;
     }
 
     play(niters) {
-        this.interval = setInterval(() => {
-            if (niters === 0) {
-                this.stop();
-            } else {
-                niters--;
-                this.step();
-            }
-        }, this.speed);
-        return this;
-    }
-
-    stop() {
-        if (this.interval) {
-            clearInterval(this.interval);
+        while (niters > 0) {
+            this.step();
+            niters--;
         }
         return this;
     }
 }
 
 class Cell {
-    constructor(x, y, index, alive) {
+    constructor(x, y, index, alive, messages) {
         this.x = x;
         this.y = y;
         this.index = index;
         this.alive = alive;
+        this.messages = messages;
     }
 
     setAlive(alive) {
@@ -162,20 +161,19 @@ class Cell {
     }
 
     getFill() {
-        return this.alive ? 'red' : '#fff';
+        return this.alive ? '#ce0f3d' : '#8e59e3';
     }
 
-    getStroke() {
-        return this.alive ? 'red' : 'grey';
+    getOpacity(scale) {
+        return this.alive ? maxOpacity : scale(this.messages);
     }
 
     getRadius() {
-        // return this.alive ? this.alive * 10 : 5;
         return cellSize;
     }
     
     copy() {
-        return new Cell(this.x, this.y, this.index, this.alive);
+        return new Cell(this.x, this.y, this.index, this.alive, this.messages);
     }
 }
 
@@ -207,12 +205,14 @@ async function load() {
         date = new Date(date.getTime() + MS_PER_DAY);
         calendar.push({
             date,
-            val: days[date] || 0
+            data: days[date] || { love: 0, messages: 0 }
         });
     }
 
-    const game = new GameOfLife(calendar, 500, 500);
-    game.initialize().play();
+    for (let i = 0; i < 9 * 3; i++) {
+        const game = new GameOfLife(calendar, 150, 150);
+        game.initialize().play(i);
+    }
 }
 
 load();

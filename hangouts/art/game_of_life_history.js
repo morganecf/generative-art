@@ -121,7 +121,8 @@ class GameOfLife {
     updateDisplay() {
         this.circle
             .attr('fill', cell => cell.getFill())
-            .attr('stroke', cell => cell.getStroke());
+            .attr('stroke', cell => cell.getStroke())
+            .attr('fill-opacity', cell => cell.getOpacity());
         return this;
     }
 
@@ -151,27 +152,42 @@ class Cell {
         this.y = y;
         this.index = index;
         this.alive = alive;
+        this.history = [this.alive];
     }
 
     setAlive(alive) {
         this.alive = alive;
+        this.history.push(this.alive);
     }
 
     isAlive() {
         return this.alive;
     }
 
+    wasAlive() {
+        return this.history.filter(a => a).length > 0;
+    }
+
     getFill() {
-        return this.alive ? 'red' : '#fff';
+        return this.wasAlive() ? 'red' : 'white';
     }
 
     getStroke() {
-        return this.alive ? 'red' : 'grey';
+        return this.wasAlive() ? 'red' : 'grey';
     }
 
     getRadius() {
-        // return this.alive ? this.alive * 10 : 5;
         return cellSize;
+    }
+
+    getOpacity() {
+        const interval = 1. / this.history.length;
+        let opacity = this.history[0] ? 1 : 0;
+        this.history.forEach(alive => {
+            const sign = alive ? 1 : -1;
+            opacity = opacity + (sign * interval);
+        });
+        return opacity;
     }
     
     copy() {
