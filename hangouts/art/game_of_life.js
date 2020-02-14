@@ -6,7 +6,8 @@ function containsLove(message) {
     return message.toLowerCase().match(/i love you/) !== null;
 }
 function parseDate(d) {
-    return new Date(d.timestamp.split(',').slice(0, 2).join(' '));
+    const date = d.timestamp.split(',').slice(0, 2).join(' ');
+    return new Date(`${date} 1:00 PM`);
 }
 function countLove(days, data) {
     data.messages.forEach(d => {
@@ -49,7 +50,7 @@ function initializeGridFromData(n, data) {
     return d3.range(n).map((x, i) => d3.range(n).map((y, j) => {
         const index = getIndexFromCoords(i, j, n);
         const isAlive = Boolean(data[index].val);
-        return new Cell(i, j, index, isAlive);
+        return new Cell(i, j, index, isAlive, data[index].date);
     }));
 }
 
@@ -71,7 +72,7 @@ class GameOfLife {
         });
 
         this.xscale = d3.scaleLinear().domain([0, this.n]).range([pad, this.width]);
-        this.yscale = d3.scaleLinear().domain([0, this.n]).range([this.height, pad]);
+        this.yscale = d3.scaleLinear().domain([this.n, 0]).range([this.height, pad]);
 
         const svg = d3.select('.container')
             .append('svg')
@@ -86,7 +87,8 @@ class GameOfLife {
             .attr('class', 'circle')
             .attr('cx', cell => this.xscale(cell.x))
             .attr('cy', cell => this.yscale(cell.y))
-            .attr('r', cell => cell.getRadius());
+            .attr('r', cell => cell.getRadius())
+            .on('mouseover', cell => console.log(cell.date));
 
         this.updateDisplay();
         return this;
@@ -146,11 +148,12 @@ class GameOfLife {
 }
 
 class Cell {
-    constructor(x, y, index, alive) {
+    constructor(x, y, index, alive, date) {
         this.x = x;
         this.y = y;
         this.index = index;
         this.alive = alive;
+        this.date = date;
     }
 
     setAlive(alive) {
@@ -175,7 +178,7 @@ class Cell {
     }
     
     copy() {
-        return new Cell(this.x, this.y, this.index, this.alive);
+        return new Cell(this.x, this.y, this.index, this.alive, this.date);
     }
 }
 
@@ -186,10 +189,8 @@ async function load() {
     const data4 = await d3.json('../data/messages_300-400.json');
     const data5 = await d3.json('../data/messages_400-500.json');
     const data6 = await d3.json('../data/messages_500-600.json');
+    const data7 = await d3.json('../data/messages_600-700.json');
 
-    // TODO Could also only count each person once? 
-    // TODO Could represent original message with something
-    // TODO should probably be binary, cell is alive if ILY was reciprocated
     const days = {};
     countLove(days, data1);
     countLove(days, data2);
@@ -197,14 +198,16 @@ async function load() {
     countLove(days, data4);
     countLove(days, data5);
     countLove(days, data6);
+    countLove(days, data7);
 
-    const firstDate = parseDate(data6.messages[data6.messages.length - 1]);
+    const firstDate = parseDate(data7.messages[data7.messages.length - 1]);
     const lastDate = parseDate(data1.messages[0]);
 
     const calendar = [];
     let date = firstDate;
     while (date.getTime() < lastDate.getTime()) {
         date = new Date(date.getTime() + MS_PER_DAY);
+        date.setHours(13);
         calendar.push({
             date,
             val: days[date] || 0

@@ -1,13 +1,19 @@
 const MS_PER_DAY = 8.64e+7;
-const pad = 5;
 const cellSize = 3;
 const maxOpacity = 0.8;
+const numRows = 13;
+const numCols = 4;
+const gridSize = 150;
+const pad = 5;
+const aliveColor = '#ce0f3d';
+const deadColor = '#8e59e3';
 
 function containsLove(message) {
     return message.toLowerCase().match(/i love you/) !== null;
 }
 function parseDate(d) {
-    return new Date(d.timestamp.split(',').slice(0, 2).join(' '));
+    const date = d.timestamp.split(',').slice(0, 2).join(' ');
+    return new Date(`${date} 1:00 PM`);
 }
 function countLove(days, data) {
     data.messages.forEach(d => {
@@ -56,15 +62,16 @@ function initializeGridFromData(n, data) {
     return d3.range(n).map((x, i) => d3.range(n).map((y, j) => {
         const index = getIndexFromCoords(i, j, n);
         const isAlive = Boolean(data[index].data.love);
-        return new Cell(i, j, index, isAlive, data[index].data.messages);
+        return new Cell(i, j, index, isAlive, data[index].data.messages, data[index].date);
     }));
+}
+function printCellInfo(cell) {
+    console.log(`${cell.date}: ${cell.messages} messages`);
 }
 
 class GameOfLife {
-    constructor(data, width, height) {
+    constructor(data) {
         this.data = data;
-        this.width = width;
-        this.height = height
     }
 
     initialize() {
@@ -76,18 +83,16 @@ class GameOfLife {
             return this.grid[x][y];
         });
 
-        this.xscale = d3.scaleLinear().domain([0, this.n]).range([pad, this.width]);
-        this.yscale = d3.scaleLinear().domain([0, this.n]).range([this.height, pad]);
+        this.xscale = d3.scaleLinear().domain([0, this.n]).range([pad, gridSize]);
+        this.yscale = d3.scaleLinear().domain([this.n, 0]).range([gridSize, pad]);
 
         const maxNumMessages = d3.max(this.data, d => d.messages);
         this.opacityScale = d3.scaleLinear().domain([0, maxNumMessages]).range([0.2, maxOpacity]);
-
-        const svg = d3.select('.container')
+    
+        this.circle = d3.select('.container')
             .append('svg')
-            .attr('width', this.width + pad)
-            .attr('height', this.height + pad);
-        
-        this.circle = svg
+            .attr('width', gridSize + pad)
+            .attr('height', gridSize + pad)
             .selectAll('.circle')
             .data(this.data)
             .enter()
@@ -95,7 +100,8 @@ class GameOfLife {
             .attr('class', 'circle')
             .attr('cx', cell => this.xscale(cell.x))
             .attr('cy', cell => this.yscale(cell.y))
-            .attr('r', cell => cell.getRadius());
+            .attr('r', cell => cell.getRadius())
+            .on('mouseover', printCellInfo);
 
         this.updateDisplay();
         return this;
@@ -144,12 +150,13 @@ class GameOfLife {
 }
 
 class Cell {
-    constructor(x, y, index, alive, messages) {
+    constructor(x, y, index, alive, messages, date) {
         this.x = x;
         this.y = y;
         this.index = index;
         this.alive = alive;
         this.messages = messages;
+        this.date = date;
     }
 
     setAlive(alive) {
@@ -161,7 +168,7 @@ class Cell {
     }
 
     getFill() {
-        return this.alive ? '#ce0f3d' : '#8e59e3';
+        return this.alive ? aliveColor : deadColor;
     }
 
     getOpacity(scale) {
@@ -173,7 +180,7 @@ class Cell {
     }
     
     copy() {
-        return new Cell(this.x, this.y, this.index, this.alive, this.messages);
+        return new Cell(this.x, this.y, this.index, this.alive, this.messages, this.date);
     }
 }
 
@@ -184,6 +191,7 @@ async function load() {
     const data4 = await d3.json('../data/messages_300-400.json');
     const data5 = await d3.json('../data/messages_400-500.json');
     const data6 = await d3.json('../data/messages_500-600.json');
+    const data7 = await d3.json('../data/messages_600-700.json');
 
     // TODO Could also only count each person once? 
     // TODO Could represent original message with something
@@ -195,22 +203,25 @@ async function load() {
     countLove(days, data4);
     countLove(days, data5);
     countLove(days, data6);
+    countLove(days, data7);
 
-    const firstDate = parseDate(data6.messages[data6.messages.length - 1]);
+    const firstDate = parseDate(data7.messages[data7.messages.length - 1]);
     const lastDate = parseDate(data1.messages[0]);
 
     const calendar = [];
     let date = firstDate;
     while (date.getTime() < lastDate.getTime()) {
         date = new Date(date.getTime() + MS_PER_DAY);
+        date.setHours(13);
         calendar.push({
             date,
             data: days[date] || { love: 0, messages: 0 }
         });
     }
 
-    for (let i = 0; i < 9 * 3; i++) {
-        const game = new GameOfLife(calendar, 150, 150);
+    // Draw each iteration
+    for (let i = 0; i < numRows * numCols; i++) {
+        const game = new GameOfLife(calendar);
         game.initialize().play(i);
     }
 }
