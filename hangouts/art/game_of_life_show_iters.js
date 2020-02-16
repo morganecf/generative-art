@@ -1,12 +1,14 @@
 const MS_PER_DAY = 8.64e+7;
 const cellSize = 3;
-const maxOpacity = 0.8;
-const numRows = 13;
-const numCols = 4;
-const gridSize = 150;
+const maxOpacity = 0.9;
+const numRows = 9;
+const numCols = 6;
+const gridSize = 192;
 const pad = 5;
 const aliveColor = '#ce0f3d';
 const deadColor = '#8e59e3';
+const background = '#e6fbff'; // cool
+// const backgorund = ''; // warm   
 
 function containsLove(message) {
     return message.toLowerCase().match(/i love you/) !== null;
@@ -93,6 +95,8 @@ class GameOfLife {
             .append('svg')
             .attr('width', gridSize + pad)
             .attr('height', gridSize + pad)
+            .style('margin-bottom', '-10px')
+            .style('margin-right', '-5px')
             .selectAll('.circle')
             .data(this.data)
             .enter()
@@ -218,6 +222,18 @@ async function load() {
             data: days[date] || { love: 0, messages: 0 }
         });
     }
+
+    // Frame is 8x6in
+    d3.select('.frame')
+        .style('width', `${800 * 2.3}px`)
+        .style('height', `${600 * 2.3}px`)
+        .style('padding', '50px')
+        .style('background', 'red');
+
+    // Background color inside frame
+    d3.select('.container')
+        .style('background', background)
+        .style('padding', '50px');
 
     // Draw each iteration
     for (let i = 0; i < numRows * numCols; i++) {

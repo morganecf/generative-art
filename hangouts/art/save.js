@@ -1,6 +1,7 @@
 /*
   Saves an SVG
   https://ezgif.com/svg-to-png seems to handle large files well for converting to png
+  https://29a.ch/film-emulator/ for grain 
 */
 function save(filename) {
   const data = document.querySelector('.container').innerHTML;

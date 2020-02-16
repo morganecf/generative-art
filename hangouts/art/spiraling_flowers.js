@@ -1,13 +1,16 @@
 /* Params */
-const width = 1500;
-const height = 1500;
+// const width = 1500;
+// const height = 1500;
+const width = 500;
+const height = 500;
 // Spiral params
 const start = 0;
 const end = 2.25;
 const numSpirals = 10;
 // Flower sizes
 const petalSize = 0.5;
-const halfRadius = 10;
+// const halfRadius = 10;
+const halfRadius = 4;
 // Max number of petals
 const maxWords = 25;
 // Will modify opacity
@@ -26,8 +29,18 @@ const noiseFactors = [
     // width / 40,
     // width / 60,
 ];
+// Whether or not to show messages containing "i love you"
+const showLove = true;
 
 /* Colors */
+
+// Stroke color -- white makes it seem more crystalline
+const stroke = 'none';
+
+// Pink blue and yellow
+const color1 = '#FF338D';
+const color2 = '#338DFF';
+const color3 = 'yellow';
 
 // Yellow and lavender
 // const color1 = '#ffe352';
@@ -36,14 +49,21 @@ const noiseFactors = [
 // // Lavender and red
 // const color1 = '#8e59e3';
 // const color2 = '#ce0f3d';
+// const color3 = 'yellow';
 
 // Yellow and blue
 // const color1 = '#ffe352';
 // const color2 = '#120A8F';
+// const color3 = '#fff';
 
 // Red and blue
-const color1 = '#ce0f3d';
-const color2 = '#120A8F';
+// const color1 = '#ce0f3d';
+// const color2 = '#120A8F';
+
+// Buddhist colors - greenish brown, grey, reddish brown
+// const color1 = '#66583e';
+// const color2 = '#46443c';
+// const color3 = '#8a3d24';
 
 // Background color -- can't be in css or won't properly save to svg
 
@@ -52,7 +72,7 @@ const color2 = '#120A8F';
 // Dark grey
 // const background = '#20212b';
 // Midnight blue
-// const background = '#0a0e33';
+const background = '#0a0e33';
 // Dark red
 // const background = '#7b1515';
 // Lavender
@@ -62,7 +82,9 @@ const color2 = '#120A8F';
 // Light banana
 // const background = '#f7e8d8';
 // Light pinkish banana
-const background = '#f1ddd8';
+// const background = '#f1ddd8';
+// Buddhist light brown
+// const background = '#98653d';
 
 /* For drawing flowers */
 
@@ -77,6 +99,9 @@ function petalPath(d, size) {
     return `M0,0L${s.x},${s.y}Q${c1.x},${c1.y} ${m.x},${m.y}L${m.x},${m.y}Q${c2.x},${c2.y} ${e.x},${e.y}Z`;
 }
 function petalFill(d) {
+    if (showLove && d.data.isLove) {
+        return color3;
+    }
     return d.data.name.startsWith('M') ? color1 : color2
 }
 function flowerRadius(angle) {
@@ -114,15 +139,23 @@ function filterMessages(data) {
 }
 function messageToData(d) {
     const words = d.content.split(/\s+/).slice(0, maxWords);
-    return words.map(w => ({ size: petalSize, name: d.name, chars: w.length }));
+    return words.map(w => ({ size: petalSize, name: d.name, chars: w.length, isLove: containsLove(d.content) }));
+}
+function containsLove(message) {
+    return message.toLowerCase().match(/i love you/) !== null;
 }
 
 async function draw() {
-    const data = await d3.json('messages_15-20.json');
-    const filtered = filterMessages(data);
-    // const data1 = await d3.json('../data/messages_0-100.json');
-    // const data2 = await d3.json('../data/messages_100-200.json');
-    // const filtered = filterMessages(data1).concat(filterMessages(data2));
+    // const data = await d3.json('messages_15-20.json');
+    // const filtered = filterMessages(data);
+    const data1 = await d3.json('../data/messages_0-100.json');
+    const data2 = await d3.json('../data/messages_100-200.json');
+    const data3 = await d3.json('../data/messages_200-300.json');
+    const data4 = await d3.json('../data/messages_300-400.json');
+    const filtered = filterMessages(data1)
+        .concat(filterMessages(data2))
+        .concat(filterMessages(data3))
+        .concat(filterMessages(data4));
 
     // For placing flowers along spiral
     const radius = d3.scaleLinear()
@@ -138,6 +171,7 @@ async function draw() {
     const pie = d3.pie().sort(null).value(d => d.size);
     const opacityScale = d3.scaleLinear().domain([1, maxChars]).range([0, 1]);
     const petalSize = d3.scaleSqrt().domain([0, 1]).range([0, halfRadius]);
+    const loveScale = d3.scaleLinear().domain([1, maxChars]).range([0.6, 1]);
 
     const svg = d3.select('.container')
         .append('svg')
@@ -172,7 +206,8 @@ async function draw() {
         .attr('transform', d => flowerRadius((d.startAngle + d.endAngle) / 2))
         .attr('d', d => petalPath(d, petalSize))
         .attr('fill', petalFill)
-        .attr('opacity', d => opacityScale(d.data.chars));
+        .attr('opacity', d => d.data.isLove ? loveScale(d.data.chars) : opacityScale(d.data.chars))
+        .attr('stroke', stroke);
 }
 
 draw();
