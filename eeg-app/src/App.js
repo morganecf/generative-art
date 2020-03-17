@@ -71,20 +71,28 @@ class App extends Component {
         width: 950,
       }),
     };
+
     this.state = {
+      connected: false,
       connection: 'disconnected',
       recording: null,
       isModalOpen: false,
       timer: 0,
     };
+
+    this.client = new MuseClient();
   }
 
   async connect() {
-    this.client = new MuseClient();
     this.setState({ connection: 'connecting' });
-    await this.client.connect();
-    await this.client.start();
-    this.setState({ connection: 'connected' });
+    try {
+      await this.client.connect();
+      await this.client.start();
+      this.setState({ connection: 'connected' });
+    } catch (err) {
+      console.log('connection failed')
+      this.setState({ connection: 'disconnected' });
+    }
   }
 
   record() {
